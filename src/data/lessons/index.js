@@ -6,43 +6,28 @@ import { lesson5 } from './lesson5'
 import { lesson6 } from './lesson6'
 import { lesson7 } from './lesson7'
 import { lesson8 } from './lesson8'
+import { lesson9 } from './lesson9'
+import { lesson10 } from './lesson10'
+import { lesson11 } from './lesson11'
+import { lesson12 } from './lesson12'
+import { lesson13 } from './lesson13'
+import { lesson14 } from './lesson14'
+import { lesson31 } from './lesson31'
+import { lesson32 } from './lesson32'
+import { lesson36 } from './lesson36'
+import { lesson37 } from './lesson37'
+import { lesson41 } from './lesson41'
+import { lesson46 } from './lesson46'
+import { lesson51 } from './lesson51'
+import { lesson56 } from './lesson56'
+import { lesson61 } from './lesson61'
+import { lesson62 } from './lesson62'
+import { GENERATED_LESSONS } from './extraLessons'
+import { MODULES, MODULE_BY_ID, getModuleById } from './modules'
 
-export const MODULES = [
-  {
-    id: 1,
-    title: 'Модуль 1: Арифметика и числа с нуля',
-    description: 'Натуральные числа, порядок действий, отрицательные числа, дроби и проценты.',
-    badge: 'С нуля',
-    color: '#4f46e5',
-    lessonIds: [1, 2, 3, 4]
-  },
-  {
-    id: 2,
-    title: 'Модуль 2: Алгебра и уравнения',
-    description: 'Степени, корни, формулы сокращенного умножения (ФСУ), линейные и квадратные уравнения.',
-    badge: 'Алгебра',
-    color: '#0891b2',
-    lessonIds: [5, 6]
-  },
-  {
-    id: 3,
-    title: 'Модуль 3: Геометрия и планиметрия',
-    description: 'Углы, треугольники, теорема Пифагора, свойства прямоугольных фигур и площади.',
-    badge: 'Геометрия',
-    color: '#059669',
-    lessonIds: [7]
-  },
-  {
-    id: 4,
-    title: 'Модуль 4: Тригонометрия и функции',
-    description: 'Синус, косинус, тангенс, единичный круг, радианы и ключевые тригонометрические формулы.',
-    badge: 'Тригонометрия',
-    color: '#d97706',
-    lessonIds: [8]
-  }
-]
+export { MODULES, MODULE_BY_ID, getModuleById }
 
-export const ALL_LESSONS = [
+const FULL_LESSONS = [
   lesson1,
   lesson2,
   lesson3,
@@ -50,9 +35,66 @@ export const ALL_LESSONS = [
   lesson5,
   lesson6,
   lesson7,
-  lesson8
+  lesson8,
+  lesson9,
+  lesson10,
+  lesson11,
+  lesson12,
+  lesson13,
+  lesson14,
+  lesson31,
+  lesson32,
+  lesson36,
+  lesson37,
+  lesson41,
+  lesson46,
+  lesson51,
+  lesson56,
+  lesson61,
+  lesson62
 ]
 
+const lessonById = new Map()
+;[...FULL_LESSONS, ...GENERATED_LESSONS].forEach((lesson) => {
+  lessonById.set(Number(lesson.id), lesson)
+})
+
+const moduleByLessonId = new Map()
+MODULES.forEach((module) => {
+  module.lessonIds.forEach((lessonId) => {
+    moduleByLessonId.set(lessonId, module)
+  })
+})
+
+export const ALL_LESSONS = Array.from({ length: 100 }, (_, index) => {
+  const id = index + 1
+  const lesson = lessonById.get(id)
+  if (!lesson) return null
+  const module = moduleByLessonId.get(id) || getModuleById(lesson.moduleId)
+  return {
+    ...lesson,
+    id,
+    moduleId: module.id,
+    moduleTitle: module.title
+  }
+}).filter(Boolean)
+
+export const TOTAL_TESTS = ALL_LESSONS.reduce(
+  (sum, lesson) => sum + (lesson.tests?.length || 0),
+  0
+)
+
+export const LESSONS_BY_MODULE = Object.fromEntries(
+  MODULES.map((module) => [
+    module.id,
+    ALL_LESSONS.filter((lesson) => lesson.moduleId === module.id)
+  ])
+)
+
 export const getLessonById = (id) => {
-  return ALL_LESSONS.find(l => l.id === Number(id)) || ALL_LESSONS[0]
+  return lessonById.get(Number(id)) || ALL_LESSONS[0]
+}
+
+export const getLessonsByModule = (moduleId) => {
+  return ALL_LESSONS.filter((lesson) => lesson.moduleId === Number(moduleId))
 }

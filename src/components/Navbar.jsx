@@ -1,7 +1,7 @@
 import React from 'react'
 import { IconBrain, IconBook, IconAward, IconCalculator, IconFlame, IconCheckCircle } from './icons'
 
-export const Navbar = ({ activePage, setActivePage, userStats }) => {
+export const Navbar = ({ activePage, setActivePage, userStats, onOpenAdmin }) => {
   return (
     <header className="edu-navbar">
       <div className="edu-navbar-inner">
@@ -12,7 +12,7 @@ export const Navbar = ({ activePage, setActivePage, userStats }) => {
           </div>
           <div className="edu-brand-info">
             <span className="edu-brand-name">Альфа<span>Математика</span></span>
-            <span className="edu-brand-tag">Курс с нуля • Видео • 30 тестов на урок</span>
+            <span className="edu-brand-tag">100 уроков • Видео • Интерактивные тесты</span>
           </div>
         </div>
 
@@ -53,6 +53,16 @@ export const Navbar = ({ activePage, setActivePage, userStats }) => {
             <span>Мой прогресс</span>
           </button>
         </nav>
+
+        {/* Admin shortcut */}
+        <button
+          className="admin-nav-btn"
+          onClick={onOpenAdmin}
+          title="Панель администратора (Ctrl+Shift+A)"
+          aria-label="Открыть панель администратора"
+        >
+          🛡️
+        </button>
 
         {/* User Stats Pill */}
         <div className="edu-user-stats" onClick={() => setActivePage('profile')} title="Перейти в личный кабинет">

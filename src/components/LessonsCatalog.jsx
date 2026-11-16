@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
-import { ALL_LESSONS, MODULES } from '../data/lessons'
-import { IconSearch, IconVideo, IconBrain, IconCheckCircle, IconPlay } from './icons'
+import { ALL_LESSONS, MODULES, TOTAL_TESTS } from '../data/lessons'
+import { IconSearch, IconVideo, IconBrain, IconPlay } from './icons'
 
 export const LessonsCatalog = ({ onOpenLesson, testProgress }) => {
   const [selectedModule, setSelectedModule] = useState('all')
@@ -29,7 +29,8 @@ export const LessonsCatalog = ({ onOpenLesson, testProgress }) => {
       <div className="catalog-header">
         <h1 className="catalog-title">Каталог всех уроков курса</h1>
         <p className="catalog-subtitle">
-          8 полноценных уроков от азов счета до тригонометрии. В каждом уроке: видео-лекция + 30 тестов.
+          {ALL_LESSONS.length} уроков от азов счёта до высшей математики. В каждом уроке — видео-лекция,
+          теория, формулы и интерактивные тесты. Всего {TOTAL_TESTS.toLocaleString('ru-RU')} тестов.
         </p>
       </div>
 
@@ -48,8 +49,9 @@ export const LessonsCatalog = ({ onOpenLesson, testProgress }) => {
               key={mod.id}
               className={`filter-pill ${selectedModule === String(mod.id) ? 'active' : ''}`}
               onClick={() => setSelectedModule(String(mod.id))}
+              title={mod.title}
             >
-              {mod.badge}
+              {mod.icon} {mod.badge} ({mod.lessonIds.length})
             </button>
           ))}
         </div>
@@ -71,8 +73,9 @@ export const LessonsCatalog = ({ onOpenLesson, testProgress }) => {
         {filteredLessons.map((lesson) => {
           const stats = testProgress[lesson.id] || { correctCount: 0, totalAnswered: 0 }
           const correctCount = stats.correctCount || 0
-          const percent = Math.round((correctCount / 30) * 100)
-          const isDone = correctCount >= 25
+          const totalQuestions = lesson.tests.length
+          const percent = Math.round((correctCount / totalQuestions) * 100)
+          const isDone = correctCount >= Math.ceil(totalQuestions * 0.8)
 
           return (
             <div key={lesson.id} className="lesson-catalog-card">
@@ -91,7 +94,7 @@ export const LessonsCatalog = ({ onOpenLesson, testProgress }) => {
                 </span>
                 <span className="perk-badge tests">
                   <IconBrain />
-                  <span>30 интерактивных тестов</span>
+                  <span>{totalQuestions} тестов</span>
                 </span>
               </div>
 
@@ -99,7 +102,7 @@ export const LessonsCatalog = ({ onOpenLesson, testProgress }) => {
               <div className="lesson-card-progress">
                 <div className="progress-labels">
                   <span>Решено тестов:</span>
-                  <strong>{correctCount} из 30 ({percent}%)</strong>
+                  <strong>{correctCount} из {totalQuestions} ({percent}%)</strong>
                 </div>
                 <div className="progress-track-small">
                   <div
@@ -121,13 +124,20 @@ export const LessonsCatalog = ({ onOpenLesson, testProgress }) => {
                   className="btn btn-outline"
                   onClick={() => onOpenLesson(lesson.id, 'tests')}
                 >
-                  <span>30 тестов</span>
+                  <span>{totalQuestions} тестов</span>
                 </button>
               </div>
             </div>
           )
         })}
       </div>
+
+      {filteredLessons.length === 0 && (
+        <div className="catalog-empty-state">
+          <h3>Ничего не найдено</h3>
+          <p>Попробуйте изменить запрос или выбрать другой модуль.</p>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { getLessonById, ALL_LESSONS } from '../data/lessons'
 import { IconVideo, IconBook, IconBrain, IconCheckCircle, IconXCircle, IconRotate, IconChevronRight, IconPlay, IconAward } from './icons'
 
@@ -15,6 +15,11 @@ export const LessonDetail = ({
   const [activeTab, setActiveTab] = useState(initialTab) // 'video' | 'theory' | 'tests'
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
 
+  useEffect(() => {
+    setActiveTab(initialTab)
+    setCurrentQuestionIndex(0)
+  }, [lessonId, initialTab])
+
   // Current lesson's saved answers: { [questionId]: { selectedOption, isCorrect } }
   const lessonAnswers = testProgress[lesson.id]?.answers || {}
 
@@ -22,7 +27,7 @@ export const LessonDetail = ({
   const currentAnswer = lessonAnswers[currentQuestion.id]
 
   // Stats for this lesson
-  const totalQuestions = lesson.tests.length // 30
+  const totalQuestions = lesson.tests.length
   const answeredCount = Object.keys(lessonAnswers).length
   const correctCount = Object.values(lessonAnswers).filter(a => a.isCorrect).length
   const isAllAnswered = answeredCount === totalQuestions
@@ -45,11 +50,12 @@ export const LessonDetail = ({
     }
   }
 
-  // Calculate grade based on score out of 30
+  // Calculate grade based on percentage of correct answers
   const getGrade = (score) => {
-    if (score >= 27) return { text: 'Отлично! (Оценка 5)', color: '#16a34a' }
-    if (score >= 22) return { text: 'Хорошо! (Оценка 4)', color: '#2563eb' }
-    if (score >= 16) return { text: 'Удовлетворительно (Оценка 3)', color: '#d97706' }
+    const percent = totalQuestions > 0 ? (score / totalQuestions) * 100 : 0
+    if (percent >= 90) return { text: 'Отлично! (Оценка 5)', color: '#16a34a' }
+    if (percent >= 70) return { text: 'Хорошо! (Оценка 4)', color: '#2563eb' }
+    if (percent >= 50) return { text: 'Удовлетворительно (Оценка 3)', color: '#d97706' }
     return { text: 'Нужно повторить материал (Оценка 2)', color: '#dc2626' }
   }
 
@@ -95,8 +101,8 @@ export const LessonDetail = ({
             onClick={() => setActiveTab('tests')}
           >
             <IconBrain />
-            <span>3. 30 Интерактивных тестов</span>
-            <span className="tab-counter-badge">{correctCount}/30</span>
+            <span>3. Интерактивные тесты</span>
+            <span className="tab-counter-badge">{correctCount}/{totalQuestions}</span>
           </button>
         </div>
       </div>
@@ -129,7 +135,7 @@ export const LessonDetail = ({
 
             <div className="video-action-box">
               <h4>Посмотрели видео?</h4>
-              <p>Закрепите материал конспектом и проверьте свои знания в 30 тестах этого урока!</p>
+              <p>Закрепите материал конспектом и проверьте свои знания в {totalQuestions} тестах этого урока!</p>
               <div className="btn-group-row">
                 <button
                   className="btn btn-outline"
@@ -141,7 +147,7 @@ export const LessonDetail = ({
                   className="btn btn-primary"
                   onClick={() => setActiveTab('tests')}
                 >
-                  Перейти к 30 тестам →
+                  Перейти к тестам →
                 </button>
               </div>
             </div>
@@ -183,12 +189,12 @@ export const LessonDetail = ({
 
             <div className="theory-next-action">
               <h3>Готовы к практике?</h3>
-              <p>Пройдите 30 тестов к этому уроку, чтобы надежно закрепить материал в памяти.</p>
+              <p>Пройдите {totalQuestions} тестов к этому уроку, чтобы надёжно закрепить материал в памяти.</p>
               <button
                 className="btn btn-primary btn-lg"
                 onClick={() => setActiveTab('tests')}
               >
-                <span>Начать 30 проверочных тестов</span>
+                <span>Начать проверочные тесты</span>
                 <IconChevronRight />
               </button>
             </div>
@@ -219,7 +225,7 @@ export const LessonDetail = ({
               <button
                 className="reset-tests-btn"
                 onClick={() => {
-                  if (window.confirm('Сбросить ваши ответы для этого урока и начать 30 тестов заново?')) {
+                  if (window.confirm(`Сбросить ваши ответы для этого урока и начать ${totalQuestions} тестов заново?`)) {
                     onResetLessonTests(lesson.id)
                     setCurrentQuestionIndex(0)
                   }
@@ -265,9 +271,9 @@ export const LessonDetail = ({
               <div className="finished-header">
                 <IconAward className="trophy-icon" />
                 <div>
-                  <h3>Поздравляем! Все 30 тестов пройдены!</h3>
+                  <h3>Поздравляем! Все {totalQuestions} тестов пройдены!</h3>
                   <p>
-                    Ваш результат: <strong>{correctCount} из 30</strong> правильных ответов.
+                    Ваш результат: <strong>{correctCount} из {totalQuestions}</strong> правильных ответов.
                   </p>
                   <span
                     className="grade-badge"
@@ -376,7 +382,7 @@ export const LessonDetail = ({
               </button>
 
               <div className="q-nav-center">
-                <span>Вопрос {currentQuestionIndex + 1} из 30</span>
+                <span>Вопрос {currentQuestionIndex + 1} из {totalQuestions}</span>
               </div>
 
               <button

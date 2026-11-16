@@ -12,7 +12,8 @@ export const QuizTrainer = ({ onOpenLesson, onAddXp }) => {
   const [isFinished, setIsFinished] = useState(false)
 
   const activeLesson = ALL_LESSONS.find(l => l.id === Number(selectedLessonId)) || ALL_LESSONS[0]
-  const questions = activeLesson.tests // 30 questions
+  const questions = activeLesson.tests
+  const totalQuestions = questions.length
 
   // Timer countdown
   useEffect(() => {
@@ -48,7 +49,7 @@ export const QuizTrainer = ({ onOpenLesson, onAddXp }) => {
     setIsFinished(true)
     // Award XP
     const correctCount = Object.values(userAnswers).filter(a => a.isCorrect).length
-    const earnedXp = correctCount * 15 + (correctCount >= 25 ? 100 : 20)
+    const earnedXp = correctCount * 15 + (correctCount >= Math.ceil(totalQuestions * 0.8) ? 100 : 20)
     if (onAddXp) onAddXp(earnedXp)
   }
 
@@ -65,7 +66,7 @@ export const QuizTrainer = ({ onOpenLesson, onAddXp }) => {
   return (
     <div className="trainer-page-container">
       <div className="trainer-header">
-        <h1 className="trainer-title">Тренажер и экзаменатор по 30 тестам</h1>
+        <h1 className="trainer-title">Тренажёр и экзаменатор по тестам курса</h1>
         <p className="trainer-subtitle">
           Проверьте готовность в режиме реального времени с таймером или в спокойном темпе.
         </p>
@@ -77,8 +78,8 @@ export const QuizTrainer = ({ onOpenLesson, onAddXp }) => {
           <div className="trainer-icon-badge">
             <IconBrain />
           </div>
-          <h2>Выберите тему для тестирования из 30 вопросов</h2>
-          <p>Каждый тест включает ровно 30 задач с возрастающей сложностью и подробными разборами.</p>
+          <h2>Выберите тему для тестирования</h2>
+          <p>Каждый тест включает задания с возрастающей сложностью и подробными разборами.</p>
 
           <div className="trainer-select-row">
             <label>Урок для проверки:</label>
@@ -89,7 +90,7 @@ export const QuizTrainer = ({ onOpenLesson, onAddXp }) => {
             >
               {ALL_LESSONS.map((lesson) => (
                 <option key={lesson.id} value={lesson.id}>
-                  Урок {lesson.id}: {lesson.title} (30 тестов)
+                  Урок {lesson.id}: {lesson.title} ({lesson.tests.length} тестов)
                 </option>
               ))}
             </select>
@@ -109,7 +110,7 @@ export const QuizTrainer = ({ onOpenLesson, onAddXp }) => {
           <div className="trainer-start-actions">
             <button className="btn btn-primary btn-lg" onClick={startTest}>
               <IconPlay />
-              <span>Начать тест (30 вопросов)</span>
+              <span>Начать тест ({totalQuestions} вопросов)</span>
             </button>
             <button
               className="btn btn-outline btn-lg"
@@ -131,23 +132,23 @@ export const QuizTrainer = ({ onOpenLesson, onAddXp }) => {
           <div className="result-stats-grid">
             <div className="result-stat-box">
               <span className="stat-label">Правильных ответов:</span>
-              <strong className="stat-val correct">{correctCount} из 30</strong>
+              <strong className="stat-val correct">{correctCount} из {totalQuestions}</strong>
             </div>
             <div className="result-stat-box">
               <span className="stat-label">Процент успеха:</span>
-              <strong className="stat-val">{Math.round((correctCount / 30) * 100)}%</strong>
+              <strong className="stat-val">{Math.round((correctCount / totalQuestions) * 100)}%</strong>
             </div>
             <div className="result-stat-box">
               <span className="stat-label">Оценка:</span>
               <strong className="stat-val">
-                {correctCount >= 27 ? '5 (Отлично!)' : correctCount >= 22 ? '4 (Хорошо)' : correctCount >= 16 ? '3 (Удовл.)' : '2 (Повторить)'}
+                {correctCount / totalQuestions >= 0.9 ? '5 (Отлично!)' : correctCount / totalQuestions >= 0.7 ? '4 (Хорошо)' : correctCount / totalQuestions >= 0.5 ? '3 (Удовл.)' : '2 (Повторить)'}
               </strong>
             </div>
           </div>
 
-          {/* Review of all 30 questions */}
+          {/* Review of all questions */}
           <div className="trainer-review-section">
-            <h3>Разбор всех 30 вопросов теста:</h3>
+            <h3>Разбор всех {totalQuestions} вопросов теста:</h3>
             <div className="trainer-review-list">
               {questions.map((q, idx) => {
                 const ans = userAnswers[q.id]
@@ -192,7 +193,7 @@ export const QuizTrainer = ({ onOpenLesson, onAddXp }) => {
           <div className="trainer-active-bar">
             <div className="trainer-active-info">
               <span className="trainer-active-qnum">
-                Вопрос <strong>{currentIdx + 1}</strong> из 30
+                Вопрос <strong>{currentIdx + 1}</strong> из {totalQuestions}
               </span>
               <span className="trainer-active-score">Верно: {correctCount}</span>
             </div>
@@ -231,7 +232,7 @@ export const QuizTrainer = ({ onOpenLesson, onAddXp }) => {
           {/* Question Card */}
           <div className="test-question-card">
             <div className="question-header">
-              <span className="q-number-tag">Вопрос #{currentIdx + 1} из 30</span>
+              <span className="q-number-tag">Вопрос #{currentIdx + 1} из {totalQuestions}</span>
               <span className="q-hint-tag">{activeLesson.title}</span>
             </div>
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ALL_LESSONS } from '../data/lessons'
+import { ALL_LESSONS, TOTAL_TESTS } from '../data/lessons'
 import { IconAward, IconCheckCircle, IconFlame, IconRotate, IconUser, IconBook, IconBrain } from './icons'
 
 export const ProfilePage = ({ userStats, onUpdateName, testProgress, onResetAllProgress }) => {
@@ -10,7 +10,9 @@ export const ProfilePage = ({ userStats, onUpdateName, testProgress, onResetAllP
   // Calculate statistics
   const totalCorrect = Object.values(testProgress).reduce((sum, l) => sum + (l.correctCount || 0), 0)
   const totalAnswered = Object.values(testProgress).reduce((sum, l) => sum + (l.totalAnswered || 0), 0)
-  const completedLessons = ALL_LESSONS.filter(l => (testProgress[l.id]?.correctCount || 0) >= 25).length
+  const completedLessons = ALL_LESSONS.filter(
+    (lesson) => (testProgress[lesson.id]?.correctCount || 0) >= Math.ceil(lesson.tests.length * 0.8)
+  ).length
 
   // Calculate level based on XP
   const level = Math.floor((userStats.xp || 0) / 300) + 1
@@ -74,8 +76,8 @@ export const ProfilePage = ({ userStats, onUpdateName, testProgress, onResetAllP
     {
       id: 'grandmaster',
       title: 'Магистр курса',
-      desc: 'Завершите все уроки курса и получите сертификат',
-      unlocked: completedLessons >= 6,
+      desc: 'Завершите не менее 10 уроков курса',
+      unlocked: completedLessons >= 10,
       icon: '👑'
     }
   ]
@@ -153,8 +155,8 @@ export const ProfilePage = ({ userStats, onUpdateName, testProgress, onResetAllP
             <IconCheckCircle />
           </div>
           <div className="stat-data">
-            <span className="stat-num">{totalCorrect} / 240</span>
-            <span className="stat-text">Решено тестов из 30 на урок</span>
+            <span className="stat-num">{totalCorrect} / {TOTAL_TESTS}</span>
+            <span className="stat-text">Решено тестов из {TOTAL_TESTS} в курсе</span>
           </div>
         </div>
 
@@ -164,7 +166,7 @@ export const ProfilePage = ({ userStats, onUpdateName, testProgress, onResetAllP
           </div>
           <div className="stat-data">
             <span className="stat-num">{completedLessons} / {ALL_LESSONS.length}</span>
-            <span className="stat-text">Пройдено уроков (≥25 баллов)</span>
+            <span className="stat-text">Пройдено уроков (≥80% тестов)</span>
           </div>
         </div>
 

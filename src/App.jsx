@@ -7,6 +7,7 @@ import { LessonDetail } from './components/LessonDetail'
 import { QuizTrainer } from './components/QuizTrainer'
 import { FormulaHandbook } from './components/FormulaHandbook'
 import { ProfilePage } from './components/ProfilePage'
+import { AdminPanel } from './components/AdminPanel'
 import { ALL_LESSONS } from './data/lessons'
 import './index.css'
 
@@ -14,6 +15,45 @@ export default function App() {
   const [activePage, setActivePage] = useState('home')
   const [currentLessonId, setCurrentLessonId] = useState(1)
   const [lessonInitialTab, setLessonInitialTab] = useState('video')
+  const [isAdminOpen, setIsAdminOpen] = useState(
+    () => typeof window !== 'undefined' && window.location.hash === '#admin'
+  )
+
+  // Админ-панель: кнопка, горячая клавиша Ctrl+Shift+A и адрес #admin
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'a') {
+        event.preventDefault()
+        setIsAdminOpen((value) => !value)
+      }
+      if (event.key === 'Escape') {
+        setIsAdminOpen(false)
+      }
+    }
+    const handleHashChange = () => {
+      if (window.location.hash === '#admin') setIsAdminOpen(true)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('hashchange', handleHashChange)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('hashchange', handleHashChange)
+    }
+  }, [])
+
+  const handleOpenAdmin = () => {
+    setIsAdminOpen(true)
+    if (window.location.hash !== '#admin') {
+      window.history.replaceState(null, '', '#admin')
+    }
+  }
+
+  const handleCloseAdmin = () => {
+    setIsAdminOpen(false)
+    if (window.location.hash === '#admin') {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search)
+    }
+  }
 
   // User stats from localStorage
   const [userStats, setUserStats] = useState(() => {
@@ -121,6 +161,7 @@ export default function App() {
           window.scrollTo({ top: 0, behavior: 'smooth' })
         }}
         userStats={userStats}
+        onOpenAdmin={handleOpenAdmin}
       />
 
       {/* Main Page Content */}
@@ -143,6 +184,7 @@ export default function App() {
 
         {activePage === 'lesson' && (
           <LessonDetail
+            key={currentLessonId}
             lessonId={currentLessonId}
             initialTab={lessonInitialTab}
             onBack={() => setActivePage('catalog')}
@@ -187,12 +229,25 @@ export default function App() {
             <button onClick={() => { setActivePage('trainer'); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>Тренажер 30 тестов</button>
             <button onClick={() => { setActivePage('formulas'); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>Справочник формул</button>
             <button onClick={() => { setActivePage('profile'); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>Мой прогресс</button>
+            <button onClick={handleOpenAdmin}>🛡️ Админ-панель</button>
           </div>
           <div className="footer-copy">
-            © {new Date().getFullYear()} АльфаМатематика. Все права защищены. Образовательная платформа для изучения математики.
+            © {new Date().getFullYear()} АльфаМатематика. {ALL_LESSONS.length} уроков, интерактивные тесты и подробные разборы.
+            Все права защищены.
           </div>
         </div>
       </footer>
+
+      {isAdminOpen && (
+        <AdminPanel
+          onClose={handleCloseAdmin}
+          onOpenLesson={(lessonId) => {
+            handleCloseAdmin()
+            handleOpenLesson(lessonId, 'theory')
+          }}
+          onResetProgress={handleResetAllProgress}
+        />
+      )}
     </div>
   )
 }

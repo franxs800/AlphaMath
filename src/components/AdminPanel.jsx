@@ -1,8 +1,8 @@
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect, useRef } from 'react'
-import { ALL_LESSONS, MODULES } from '../data/lessons'
+import React, { useState, useEffect } from 'react'
+import { ALL_LESSONS, MODULES, TOTAL_TESTS } from '../data/lessons'
 
-const ADMIN_PASSWORD = 'admin123'
+const getAdminPassword = () => localStorage.getItem('admin_password') || 'admin123'
 
 const styles = {
   overlay: {
@@ -263,7 +263,7 @@ const LoginScreen = ({ onLogin, onClose }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (pw === ADMIN_PASSWORD) {
+    if (pw === getAdminPassword()) {
       localStorage.setItem('admin_logged_in', '1')
       onLogin()
     } else {
@@ -300,6 +300,10 @@ const LoginScreen = ({ onLogin, onClose }) => {
             Отмена
           </button>
         </form>
+        <div style={{ color: '#475569', fontSize: 12, marginTop: 18, lineHeight: 1.5 }}>
+          Демо-доступ: пароль <strong style={{ color: '#94a3b8' }}>admin123</strong><br />
+          Пароль можно изменить в настройках панели.
+        </div>
       </div>
     </div>
   )
@@ -308,10 +312,12 @@ const LoginScreen = ({ onLogin, onClose }) => {
 // ── Dashboard ─────────────────────────────────────────────────
 const Dashboard = ({ testProgress }) => {
   const totalLessons = ALL_LESSONS.length
-  const fakeUsers = 1247
   const lessonsWithProgress = Object.keys(testProgress).length
   const totalCorrect = Object.values(testProgress).reduce((s, l) => s + (l.correctCount || 0), 0)
   const totalXP = totalCorrect * 10
+  const completedLessons = ALL_LESSONS.filter(
+    (lesson) => (testProgress[lesson.id]?.correctCount || 0) >= Math.ceil(lesson.tests.length * 0.8)
+  ).length
 
   const moduleStats = MODULES.map(m => {
     const mLessons = ALL_LESSONS.filter(l => l.moduleId === m.id)
@@ -327,16 +333,20 @@ const Dashboard = ({ testProgress }) => {
           <div style={styles.statLabel}>Всего уроков</div>
         </div>
         <div style={styles.statCard('#10b981')}>
-          <div style={styles.statValue('#10b981')}>{fakeUsers.toLocaleString()}</div>
-          <div style={styles.statLabel}>Пользователей</div>
-        </div>
-        <div style={styles.statCard('#f59e0b')}>
-          <div style={styles.statValue('#f59e0b')}>{totalXP.toLocaleString()}</div>
-          <div style={styles.statLabel}>XP начислено</div>
+          <div style={styles.statValue('#10b981')}>{TOTAL_TESTS.toLocaleString('ru-RU')}</div>
+          <div style={styles.statLabel}>Тестов в курсе</div>
         </div>
         <div style={styles.statCard('#a855f7')}>
-          <div style={styles.statValue('#a855f7')}>{lessonsWithProgress}</div>
-          <div style={styles.statLabel}>Уроков пройдено</div>
+          <div style={styles.statValue('#a855f7')}>{MODULES.length}</div>
+          <div style={styles.statLabel}>Модулей</div>
+        </div>
+        <div style={styles.statCard('#f59e0b')}>
+          <div style={styles.statValue('#f59e0b')}>{totalXP.toLocaleString('ru-RU')}</div>
+          <div style={styles.statLabel}>XP начислено</div>
+        </div>
+        <div style={styles.statCard('#14b8a6')}>
+          <div style={styles.statValue('#14b8a6')}>{completedLessons}</div>
+          <div style={styles.statLabel}>Уроков завершено</div>
         </div>
       </div>
 
@@ -380,12 +390,16 @@ const Dashboard = ({ testProgress }) => {
 }
 
 // ── Lessons Manager ───────────────────────────────────────────
-const LessonsManager = ({ testProgress }) => {
+const LessonsManager = ({ testProgress, onOpenLesson }) => {
   const [search, setSearch] = useState('')
   const [filterModule, setFilterModule] = useState('all')
 
   const filtered = ALL_LESSONS.filter(l => {
-    const matchSearch = l.title.toLowerCase().includes(search.toLowerCase())
+    const q = search.toLowerCase()
+    const matchSearch =
+      l.title.toLowerCase().includes(q) ||
+      l.subtitle.toLowerCase().includes(q) ||
+      l.summary.toLowerCase().includes(q)
     const matchModule = filterModule === 'all' || l.moduleId === Number(filterModule)
     return matchSearch && matchModule
   })
@@ -406,7 +420,7 @@ const LessonsManager = ({ testProgress }) => {
         >
           <option value="all">Все модули</option>
           {MODULES.map(m => (
-            <option key={m.id} value={m.id}>Модуль {m.id}</option>
+            <option key={m.id} value={m.id}>{m.icon} Модуль {m.id}: {m.badge}</option>
           ))}
         </select>
       </div>
@@ -425,25 +439,28 @@ const LessonsManager = ({ testProgress }) => {
                 <th style={styles.th}>Сложность</th>
                 <th style={styles.th}>Тестов</th>
                 <th style={styles.th}>Прогресс</th>
+                <th style={styles.th}>Действие</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((lesson, i) => {
                 const prog = testProgress[lesson.id]
-                const pct = prog ? Math.round(prog.correctCount / (lesson.tests?.length || 30) * 100) : 0
+                const totalQuestions = lesson.tests?.length || 0
+                const pct = prog ? Math.round(prog.correctCount / totalQuestions * 100) : 0
                 return (
                   <tr key={lesson.id} style={{ background: i % 2 === 0 ? '#1e293b08' : 'transparent' }}>
                     <td style={{ ...styles.td, color: '#64748b', width: 48 }}>{lesson.id}</td>
                     <td style={styles.td}>
                       <span style={{ color: '#f1f5f9', fontWeight: 500 }}>{lesson.title}</span>
+                      <div style={{ color: '#64748b', fontSize: 11, marginTop: 3 }}>{lesson.subtitle}</div>
                     </td>
                     <td style={styles.td}>
-                      <span style={{ color: '#94a3b8', fontSize: 12 }}>Модуль {lesson.moduleId}</span>
+                      <span style={{ color: '#94a3b8', fontSize: 12 }}>{lesson.moduleTitle}</span>
                     </td>
                     <td style={styles.td}>
                       <span style={styles.diffBadge(lesson.difficulty)}>{lesson.difficulty || 'Базовый'}</span>
                     </td>
-                    <td style={{ ...styles.td, color: '#64748b' }}>{lesson.tests?.length || 30}</td>
+                    <td style={{ ...styles.td, color: '#64748b' }}>{totalQuestions}</td>
                     <td style={{ ...styles.td, minWidth: 100 }}>
                       {prog ? (
                         <div>
@@ -458,6 +475,14 @@ const LessonsManager = ({ testProgress }) => {
                         <span style={{ color: '#334155', fontSize: 12 }}>Не начат</span>
                       )}
                     </td>
+                    <td style={styles.td}>
+                      <button
+                        style={{ ...styles.btn('ghost'), padding: '6px 12px', fontSize: 12 }}
+                        onClick={() => onOpenLesson?.(lesson.id)}
+                      >
+                        Открыть
+                      </button>
+                    </td>
                   </tr>
                 )
               })}
@@ -470,15 +495,50 @@ const LessonsManager = ({ testProgress }) => {
 }
 
 // ── User Progress ─────────────────────────────────────────────
-const UserProgress = ({ testProgress }) => {
+const UserProgress = ({ testProgress, userStats }) => {
   const entries = Object.entries(testProgress)
+
+  const userCard = (
+    <div style={{ ...styles.card, display: 'flex', alignItems: 'center', gap: 18 }}>
+      <div style={{
+        width: 64,
+        height: 64,
+        borderRadius: '50%',
+        background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+        color: '#fff',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 28,
+        fontWeight: 800,
+        flexShrink: 0,
+      }}>
+        {(userStats?.name || 'У')[0].toUpperCase()}
+      </div>
+      <div style={{ flex: 1 }}>
+        <div style={{ color: '#f1f5f9', fontSize: 20, fontWeight: 800 }}>{userStats?.name || 'Ученик'}</div>
+        <div style={{ color: '#64748b', fontSize: 13, marginTop: 4 }}>
+          Текущий пользователь платформы · {userStats?.xp || 0} XP · серия {userStats?.streak || 1} дн.
+        </div>
+      </div>
+      <div style={{ textAlign: 'right' }}>
+        <div style={{ color: '#f59e0b', fontSize: 26, fontWeight: 800 }}>
+          {Math.floor((userStats?.xp || 0) / 300) + 1}
+        </div>
+        <div style={{ color: '#64748b', fontSize: 12 }}>уровень</div>
+      </div>
+    </div>
+  )
 
   if (entries.length === 0) {
     return (
-      <div style={styles.card}>
-        <div style={styles.cardTitle}>👤 Прогресс пользователя</div>
-        <div style={{ color: '#64748b', fontSize: 14, textAlign: 'center', padding: 32 }}>
-          Нет данных о прогрессе. Пройдите несколько тестов в уроках.
+      <div>
+        {userCard}
+        <div style={styles.card}>
+          <div style={styles.cardTitle}>👤 Прогресс пользователя</div>
+          <div style={{ color: '#64748b', fontSize: 14, textAlign: 'center', padding: 32 }}>
+            Нет данных о прогрессе. Пройдите несколько тестов в уроках.
+          </div>
         </div>
       </div>
     )
@@ -490,6 +550,7 @@ const UserProgress = ({ testProgress }) => {
 
   return (
     <div>
+      {userCard}
       <div style={styles.statGrid}>
         <div style={styles.statCard('#3b82f6')}>
           <div style={styles.statValue('#3b82f6')}>{entries.length}</div>
@@ -554,14 +615,20 @@ const UserProgress = ({ testProgress }) => {
 }
 
 // ── Settings ──────────────────────────────────────────────────
-const Settings = ({ onResetProgress, onLogout }) => {
+const Settings = ({ onResetProgress, onLogout, onSiteNameChange }) => {
   const [siteName, setSiteName] = useState(() => localStorage.getItem('site_name') || 'АльфаМатематика')
   const [saved, setSaved] = useState(false)
   const [confirmReset, setConfirmReset] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordMessage, setPasswordMessage] = useState('')
+  const [importMessage, setImportMessage] = useState('')
 
   const handleSaveSiteName = () => {
     localStorage.setItem('site_name', siteName)
     setSaved(true)
+    onSiteNameChange?.(siteName)
+    window.dispatchEvent(new Event('site-name-changed'))
     setTimeout(() => setSaved(false), 2000)
   }
 
@@ -573,6 +640,65 @@ const Settings = ({ onResetProgress, onLogout }) => {
       setConfirmReset(true)
       setTimeout(() => setConfirmReset(false), 5000)
     }
+  }
+
+  const handleChangePassword = () => {
+    if (newPassword.length < 4) {
+      setPasswordMessage('Пароль должен содержать минимум 4 символа')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordMessage('Пароли не совпадают')
+      return
+    }
+    localStorage.setItem('admin_password', newPassword)
+    setNewPassword('')
+    setConfirmPassword('')
+    setPasswordMessage('✓ Пароль обновлён')
+    setTimeout(() => setPasswordMessage(''), 3000)
+  }
+
+  const handleExport = () => {
+    const data = {
+      exportedAt: new Date().toISOString(),
+      progress: JSON.parse(localStorage.getItem('math_test_progress') || '{}'),
+      userStats: JSON.parse(localStorage.getItem('math_user_stats') || '{}'),
+      settings: {
+        siteName: localStorage.getItem('site_name') || 'АльфаМатематика'
+      }
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `alfamatematika-backup-${new Date().toISOString().slice(0, 10)}.json`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleImport = (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(String(reader.result))
+        if (data.progress) localStorage.setItem('math_test_progress', JSON.stringify(data.progress))
+        if (data.userStats) localStorage.setItem('math_user_stats', JSON.stringify(data.userStats))
+        if (data.settings?.siteName) {
+          localStorage.setItem('site_name', data.settings.siteName)
+          setSiteName(data.settings.siteName)
+          onSiteNameChange?.(data.settings.siteName)
+          window.dispatchEvent(new Event('site-name-changed'))
+        }
+        setImportMessage('✓ Данные импортированы. Перезагрузите страницу, чтобы увидеть прогресс.')
+        setTimeout(() => setImportMessage(''), 5000)
+      } catch {
+        setImportMessage('Не удалось прочитать файл: неверный формат JSON')
+      }
+    }
+    reader.readAsText(file)
+    event.target.value = ''
   }
 
   return (
@@ -596,15 +722,67 @@ const Settings = ({ onResetProgress, onLogout }) => {
       </div>
 
       <div style={styles.card}>
+        <div style={styles.cardTitle}>🔐 Смена пароля администратора</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 460 }}>
+          <div>
+            <label style={styles.label}>Новый пароль</label>
+            <input
+              type="password"
+              style={styles.input}
+              value={newPassword}
+              onChange={e => { setNewPassword(e.target.value); setPasswordMessage('') }}
+              placeholder="Минимум 4 символа"
+            />
+          </div>
+          <div>
+            <label style={styles.label}>Повторите пароль</label>
+            <input
+              type="password"
+              style={styles.input}
+              value={confirmPassword}
+              onChange={e => { setConfirmPassword(e.target.value); setPasswordMessage('') }}
+              placeholder="Повторите новый пароль"
+            />
+          </div>
+          {passwordMessage && (
+            <div style={{ color: passwordMessage.startsWith('✓') ? '#10b981' : '#ef4444', fontSize: 13 }}>
+              {passwordMessage}
+            </div>
+          )}
+          <button style={{ ...styles.btn('primary'), alignSelf: 'flex-start' }} onClick={handleChangePassword}>
+            Обновить пароль
+          </button>
+        </div>
+      </div>
+
+      <div style={styles.card}>
+        <div style={styles.cardTitle}>💾 Резервное копирование</div>
+        <div style={{ marginBottom: 14, color: '#64748b', fontSize: 14 }}>
+          Экспортируйте прогресс и настройки в JSON или восстановите их из ранее сохранённого файла.
+        </div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <button style={styles.btn('primary')} onClick={handleExport}>
+            ⬇️ Экспортировать данные
+          </button>
+          <label style={{ ...styles.btn('ghost'), display: 'inline-flex', alignItems: 'center' }}>
+            ⬆️ Импортировать данные
+            <input type="file" accept="application/json,.json" onChange={handleImport} style={{ display: 'none' }} />
+          </label>
+        </div>
+        {importMessage && (
+          <div style={{ color: importMessage.startsWith('✓') ? '#10b981' : '#ef4444', fontSize: 13, marginTop: 12 }}>
+            {importMessage}
+          </div>
+        )}
+      </div>
+
+      <div style={styles.card}>
         <div style={styles.cardTitle}>🗑️ Управление данными</div>
         <div style={{ marginBottom: 12, color: '#64748b', fontSize: 14 }}>
           Это действие удалит весь прогресс тестов и XP пользователя. Это нельзя отменить.
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <button
-            style={styles.btn('danger')}
-            onClick={handleReset}
-          >
+          <button style={styles.btn('danger')} onClick={handleReset}>
             {confirmReset ? '⚠️ Подтвердить сброс' : '🗑️ Сбросить весь прогресс'}
           </button>
           {confirmReset && (
@@ -629,8 +807,9 @@ const Settings = ({ onResetProgress, onLogout }) => {
         <div style={styles.cardTitle}>ℹ️ Информация о системе</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {[
-            ['Версия платформы', '2.0.0'],
+            ['Версия платформы', '3.0.0'],
             ['Всего уроков', ALL_LESSONS.length],
+            ['Всего тестов', TOTAL_TESTS],
             ['Всего модулей', MODULES.length],
             ['localStorage доступен', typeof Storage !== 'undefined' ? '✅ Да' : '❌ Нет'],
             ['Браузер', navigator.userAgent.split(') ')[0].split('(')[1] || 'Неизвестно'],

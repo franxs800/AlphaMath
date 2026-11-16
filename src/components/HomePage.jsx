@@ -1,18 +1,21 @@
-import React from 'react'
-import { MODULES, ALL_LESSONS } from '../data/lessons'
+import React, { useState } from 'react'
+import { MODULES, ALL_LESSONS, TOTAL_TESTS } from '../data/lessons'
 import { IconPlay, IconCheckCircle, IconBook, IconBrain, IconAward, IconSparkles, IconChevronRight } from './icons'
 
 export const HomePage = ({ setActivePage, onOpenLesson, testProgress, userStats }) => {
+  const [showAllModules, setShowAllModules] = useState(false)
+
   // Find current active lesson (first uncompleted or lesson 1)
-  const currentLesson = ALL_LESSONS.find(l => {
-    const passed = testProgress[l.id]?.correctCount || 0
-    return passed < 30
+  const currentLesson = ALL_LESSONS.find((lesson) => {
+    const total = lesson.tests.length
+    const passed = testProgress[lesson.id]?.correctCount || 0
+    return passed < Math.ceil(total * 0.8)
   }) || ALL_LESSONS[0]
 
-  const totalTestsAnswered = Object.values(testProgress).reduce(
-    (sum, cur) => sum + (cur.correctCount || 0),
-    0
-  )
+  const currentLessonTotal = currentLesson.tests.length
+  const currentLessonDone = testProgress[currentLesson.id]?.correctCount || 0
+
+  const visibleModules = showAllModules ? MODULES : MODULES.slice(0, 6)
 
   return (
     <div className="home-page-container">
@@ -25,10 +28,12 @@ export const HomePage = ({ setActivePage, onOpenLesson, testProgress, userStats 
           </div>
           <h1 className="edu-hero-title">
             Понятная математика: <br />
-            <span className="edu-gradient-text">Видео-курс и 30 тестов к каждому уроку</span>
+            <span className="edu-gradient-text">{ALL_LESSONS.length} уроков и {TOTAL_TESTS.toLocaleString('ru-RU')} тестов</span>
           </h1>
           <p className="edu-hero-desc">
-            Никакой зубрежки без понимания! Мы начинаем с простейших чисел и дробей и пошагово доходим до алгебры, квадратных уравнений, геометрии и тригонометрии. Каждая тема закрепляется <strong>30 подробными тестами</strong> с пошаговым разбором.
+            Никакой зубрёжки без понимания! Мы начинаем с простейших чисел и дробей и пошагово доходим
+            до алгебры, геометрии, тригонометрии, анализа и олимпиадных задач. Каждая тема закрепляется
+            интерактивными тестами с подробным разбором решений.
           </p>
 
           <div className="edu-hero-actions">
@@ -50,18 +55,18 @@ export const HomePage = ({ setActivePage, onOpenLesson, testProgress, userStats 
 
           <div className="edu-hero-stats-strip">
             <div className="hero-stat-item">
-              <strong>8</strong>
+              <strong>{ALL_LESSONS.length}</strong>
               <span>полных уроков</span>
             </div>
             <div className="hero-stat-sep" />
             <div className="hero-stat-item">
-              <strong>240</strong>
+              <strong>{TOTAL_TESTS.toLocaleString('ru-RU')}</strong>
               <span>интерактивных тестов</span>
             </div>
             <div className="hero-stat-sep" />
             <div className="hero-stat-item">
-              <strong>100%</strong>
-              <span>разборов решений</span>
+              <strong>{MODULES.length}</strong>
+              <span>тематических модулей</span>
             </div>
             <div className="hero-stat-sep" />
             <div className="hero-stat-item">
@@ -81,13 +86,13 @@ export const HomePage = ({ setActivePage, onOpenLesson, testProgress, userStats 
             <div className="widget-progress-row">
               <div className="widget-progress-info">
                 <span>Прогресс тестов:</span>
-                <strong>{testProgress[currentLesson.id]?.correctCount || 0} из 30 решено</strong>
+                <strong>{currentLessonDone} из {currentLessonTotal} решено</strong>
               </div>
               <div className="progress-bar-bg">
                 <div
                   className="progress-bar-fill"
                   style={{
-                    width: `${Math.min(100, Math.round(((testProgress[currentLesson.id]?.correctCount || 0) / 30) * 100))}%`
+                    width: `${Math.min(100, Math.round((currentLessonDone / currentLessonTotal) * 100))}%`
                   }}
                 />
               </div>
@@ -104,13 +109,13 @@ export const HomePage = ({ setActivePage, onOpenLesson, testProgress, userStats 
         </div>
       </section>
 
-      {/* Course Roadmap (4 Modules) */}
+      {/* Course Roadmap */}
       <section className="edu-roadmap-section">
         <div className="section-header-row">
           <div>
             <h2 className="section-main-title">Программа обучения по модулям</h2>
             <p className="section-main-subtitle">
-              Логичный путь от базовой арифметики к уверенному решению уравнений и задач
+              Логичный путь от базовой арифметики к уверенному решению экзаменационных и олимпиадных задач
             </p>
           </div>
           <button className="btn btn-outline" onClick={() => setActivePage('catalog')}>
@@ -119,10 +124,15 @@ export const HomePage = ({ setActivePage, onOpenLesson, testProgress, userStats 
         </div>
 
         <div className="modules-grid">
-          {MODULES.map((module) => {
-            const moduleLessons = ALL_LESSONS.filter(l => module.lessonIds.includes(l.id))
-            const moduleTestsTotal = moduleLessons.length * 30
-            const moduleTestsDone = moduleLessons.reduce((sum, l) => sum + (testProgress[l.id]?.correctCount || 0), 0)
+          {visibleModules.map((module) => {
+            const moduleLessons = ALL_LESSONS.filter((lesson) => module.lessonIds.includes(lesson.id))
+            const moduleTestsTotal = moduleLessons.reduce((sum, lesson) => sum + lesson.tests.length, 0)
+            const moduleTestsDone = moduleLessons.reduce(
+              (sum, lesson) => sum + (testProgress[lesson.id]?.correctCount || 0),
+              0
+            )
+            const shownLessons = moduleLessons.slice(0, 4)
+            const hiddenCount = moduleLessons.length - shownLessons.length
 
             return (
               <div key={module.id} className="module-card">
@@ -130,17 +140,22 @@ export const HomePage = ({ setActivePage, onOpenLesson, testProgress, userStats 
                   <span className="module-badge" style={{ backgroundColor: module.color }}>
                     {module.badge}
                   </span>
-                  <span className="module-tests-count">{moduleLessons.length} уроков • {moduleTestsTotal} тестов</span>
+                  <span className="module-tests-count">
+                    {moduleLessons.length} уроков • {moduleTestsTotal} тестов
+                  </span>
                 </div>
 
-                <h3 className="module-title">{module.title}</h3>
+                <h3 className="module-title">
+                  {module.icon} {module.title}
+                </h3>
                 <p className="module-desc">{module.description}</p>
 
                 {/* Lessons in module */}
                 <div className="module-lessons-list">
-                  {moduleLessons.map(lesson => {
+                  {shownLessons.map((lesson) => {
                     const doneCount = testProgress[lesson.id]?.correctCount || 0
-                    const isCompleted = doneCount >= 25
+                    const totalQuestions = lesson.tests.length
+                    const isCompleted = doneCount >= Math.ceil(totalQuestions * 0.8)
 
                     return (
                       <div
@@ -155,16 +170,46 @@ export const HomePage = ({ setActivePage, onOpenLesson, testProgress, userStats 
                           <span className="lesson-row-name">{lesson.title}</span>
                         </div>
                         <div className="lesson-right">
-                          <span className="lesson-tests-stat">{doneCount}/30 тестов</span>
+                          <span className="lesson-tests-stat">{doneCount}/{totalQuestions}</span>
                           <IconChevronRight className="arrow-icon" />
                         </div>
                       </div>
                     )
                   })}
                 </div>
+
+                {hiddenCount > 0 && (
+                  <button
+                    className="module-more-btn"
+                    onClick={() => setActivePage('catalog')}
+                  >
+                    Ещё {hiddenCount} уроков в каталоге →
+                  </button>
+                )}
+
+                <div className="module-progress-line">
+                  <span>Прогресс модуля</span>
+                  <strong>
+                    {moduleTestsDone} / {moduleTestsTotal}
+                  </strong>
+                </div>
               </div>
             )
           })}
+        </div>
+
+        <div className="roadmap-footer-actions">
+          {MODULES.length > 6 && (
+            <button
+              className="btn btn-outline"
+              onClick={() => setShowAllModules((value) => !value)}
+            >
+              {showAllModules ? 'Свернуть модули' : `Показать все ${MODULES.length} модулей`}
+            </button>
+          )}
+          <button className="btn btn-primary" onClick={() => setActivePage('catalog')}>
+            Перейти в каталог всех {ALL_LESSONS.length} уроков
+          </button>
         </div>
       </section>
 
@@ -184,8 +229,8 @@ export const HomePage = ({ setActivePage, onOpenLesson, testProgress, userStats 
             <div className="feature-icon-circle success">
               <IconCheckCircle />
             </div>
-            <h4>По 30 тестов к уроку</h4>
-            <p>Ни один курс не дает столько практики! 30 тестов на каждую тему с мгновенной проверкой и подсказками.</p>
+            <h4>{TOTAL_TESTS.toLocaleString('ru-RU')} тестов</h4>
+            <p>Практика на каждом шаге: тесты с мгновенной проверкой, подсказками и пошаговыми объяснениями.</p>
           </div>
 
           <div className="feature-item">
@@ -200,8 +245,8 @@ export const HomePage = ({ setActivePage, onOpenLesson, testProgress, userStats 
             <div className="feature-icon-circle warning">
               <IconAward />
             </div>
-            <h4>Шпаргалки и сертификат</h4>
-            <p>Интерактивный справочник формул всегда под рукой, а по завершении курса выдается диплом.</p>
+            <h4>Прогресс и сертификат</h4>
+            <p>Личный кабинет, уровни, достижения, справочник формул и сертификат по завершении курса.</p>
           </div>
         </div>
       </section>
